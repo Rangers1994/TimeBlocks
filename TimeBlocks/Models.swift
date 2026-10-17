@@ -107,6 +107,22 @@ enum DayTemplate {
     }
 }
 
+// MARK: - Summary aggregation
+
+enum SummaryCalculator {
+    /// Counts 15-minute blocks per category id across a set of day blobs.
+    /// Hours per category = count × 0.25.
+    static func blockCounts(for dayBlobs: [Data]) -> [UInt8: Int] {
+        var counts: [UInt8: Int] = [:]
+        for blob in dayBlobs {
+            for byte in blob {
+                counts[byte, default: 0] += 1
+            }
+        }
+        return counts
+    }
+}
+
 // MARK: - Built-in category seeding
 
 enum CategorySeeder {
@@ -147,6 +163,7 @@ extension Color {
     var hexString: String {
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
         UIColor(self).getRed(&r, green: &g, blue: &b, alpha: &a)
-        return String(format: "#%02X%02X%02X", Int(r * 255), Int(g * 255), Int(b * 255))
+        // Round rather than truncate, so hex -> Color -> hex round-trips exactly
+        return String(format: "#%02X%02X%02X", lround(r * 255), lround(g * 255), lround(b * 255))
     }
 }

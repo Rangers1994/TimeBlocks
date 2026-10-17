@@ -65,13 +65,7 @@ struct SummaryView: View {
 
     /// Blocks per category id across the month's saved days.
     private var blockCounts: [UInt8: Int] {
-        var counts: [UInt8: Int] = [:]
-        for schedule in monthSchedules {
-            for byte in schedule.blocks {
-                counts[byte, default: 0] += 1
-            }
-        }
-        return counts
+        SummaryCalculator.blockCounts(for: monthSchedules.map(\.blocks))
     }
 
     // MARK: Rows
