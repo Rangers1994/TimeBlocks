@@ -2,7 +2,7 @@
 //  ContentView.swift
 //  TimeBlocks
 //
-//  Created by Philip Renton on 10/11/26.
+//  Root tab layout (DESIGN.md §5): Calendar (home), Summary, Categories.
 //
 
 import SwiftUI
@@ -10,52 +10,27 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
-                }
-                .onDelete(perform: deleteItems)
+        TabView {
+            Tab("Calendar", systemImage: "calendar") {
+                CalendarView()
             }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
+            Tab("Summary", systemImage: "chart.bar.fill") {
+                SummaryView()
             }
-        } detail: {
-            Text("Select an item")
+            Tab("Categories", systemImage: "paintpalette.fill") {
+                CategoriesView()
+            }
         }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
+        .tint(.tbOrange)
+        .task {
+            CategorySeeder.seedIfNeeded(modelContext)
         }
     }
 }
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+        .modelContainer(for: [ActivityCategory.self, DaySchedule.self], inMemory: true)
 }
