@@ -93,6 +93,7 @@ struct SummaryView: View {
             }
         }
         .scrollContentBackground(.hidden)
+        .scrollIndicators(.visible)
         .listStyle(.insetGrouped)
     }
 

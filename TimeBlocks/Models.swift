@@ -126,23 +126,89 @@ enum SummaryCalculator {
 // MARK: - Built-in category seeding
 
 enum CategorySeeder {
-    static func seedIfNeeded(_ context: ModelContext) {
-        let count = (try? context.fetchCount(FetchDescriptor<ActivityCategory>())) ?? 0
-        guard count == 0 else { return }
+    // `id` is the stable byte stored in day blobs and must never be reused;
+    // `sort` is only the default display position.
+    static let builtIns: [(id: Int, name: String, emoji: String, hex: String, sort: Int)] = [
+        (0, "Free Time", "⭐️", "#FFD233", 0),
+        (1, "Sleep", "🌙", "#52348C", 1),
+        (2, "School", "📚", "#FF8C42", 2),
+        (3, "Homework", "✏️", "#2D7DD2", 3),
+        (4, "Sports", "🏃", "#4CAF50", 4),
+        (8, "Activities", "🎵", "#AB47BC", 5),
+        (5, "Get Ready", "🛁", "#78909C", 6),
+        (6, "Meals", "🍽️", "#26A69A", 7),
+        (7, "Travel", "🚌", "#9E9E9E", 8),
+        (9, "Screen Time", "📱", "#EC407A", 9),
+        (13, "Family", "✅", "#1D4E89", 10),
+        (11, "Friends", "🧑‍🤝‍🧑", "#26C6DA", 11),
+    ]
 
-        let builtIns: [(Int, String, String, String)] = [
-            (0, "Free Time", "⭐️", "#FFD233"),
-            (1, "Sleep", "🌙", "#52348C"),
-            (2, "School", "📚", "#FF8C42"),
-            (3, "Homework", "✏️", "#2D7DD2"),
-            (4, "Sports", "🏃", "#4CAF50"),
-            (5, "Ready & Travel", "🚌", "#9E9E9E"),
-            (6, "Meals", "🍽️", "#26A69A"),
-        ]
-        for (id, name, emoji, hex) in builtIns {
-            context.insert(ActivityCategory(id: id, name: name, emoji: emoji, colorHex: hex, sortOrder: id, isBuiltIn: true))
+    /// Inserts any missing built-in categories. Runs on every launch so
+    /// existing installs pick up newly added built-ins; user-created or
+    /// user-edited categories are never touched.
+    static func seedIfNeeded(_ context: ModelContext) {
+        let existing = (try? context.fetch(FetchDescriptor<ActivityCategory>())) ?? []
+        let byID = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
+
+        // One-time migration: "Ready & Travel" split into Get Ready + Travel.
+        // Only renames if the user hasn't customized it.
+        if let old = byID[5], old.name == "Ready & Travel" {
+            old.name = "Get Ready"
+            old.emoji = "🛁"
+            old.colorHex = "#78909C"
+        }
+        // Follow-up migration: toothbrush proved too skinny in the grid
+        if let getReady = byID[5], getReady.emoji == "🪥" {
+            getReady.emoji = "🛁"
+        }
+
+        // Migration: built-in Family's emoji changed to a green check mark
+        if let family = byID[13], family.isBuiltIn, family.emoji == "👨‍👩‍👧‍👦" {
+            family.emoji = "✅"
+        }
+
+        // Migration: drop the short-lived built-in Family (id 10) — users
+        // create their own. Any blocks painted with it become Free Time.
+        if let brownFamily = byID[10], brownFamily.isBuiltIn, brownFamily.name == "Family" {
+            remapBlocks(from: 10, to: 0, in: context)
+            context.delete(brownFamily)
+        }
+
+        // One-time migration to the revised default ordering (Activities after
+        // Sports, Family before Friends). Only applies while the ordering is
+        // still the original scheme (sortOrder == id for every built-in), so a
+        // user's custom ordering is never clobbered.
+        let builtinCats = existing.filter(\.isBuiltIn)
+        if !builtinCats.isEmpty, builtinCats.allSatisfy({ $0.sortOrder == $0.id }) {
+            for spec in builtIns {
+                byID[spec.id]?.sortOrder = spec.sort
+            }
+        }
+
+        for spec in builtIns where byID[spec.id] == nil {
+            context.insert(ActivityCategory(id: spec.id, name: spec.name, emoji: spec.emoji,
+                                            colorHex: spec.hex, sortOrder: spec.sort, isBuiltIn: true))
         }
         try? context.save()
+    }
+
+    /// Rewrites every stored day and month template, replacing one category id
+    /// with another.
+    static func remapBlocks(from oldID: UInt8, to newID: UInt8, in context: ModelContext) {
+        let days = (try? context.fetch(FetchDescriptor<DaySchedule>())) ?? []
+        for day in days {
+            var bytes = [UInt8](day.blocks)
+            guard bytes.contains(oldID) else { continue }
+            for i in bytes.indices where bytes[i] == oldID { bytes[i] = newID }
+            day.blocks = Data(bytes)
+        }
+        let templates = (try? context.fetch(FetchDescriptor<MonthTemplate>())) ?? []
+        for template in templates {
+            var bytes = [UInt8](template.blocks)
+            guard bytes.contains(oldID) else { continue }
+            for i in bytes.indices where bytes[i] == oldID { bytes[i] = newID }
+            template.blocks = Data(bytes)
+        }
     }
 }
 
