@@ -139,7 +139,7 @@ enum CategorySeeder {
         (6, "Meals", "🍽️", "#26A69A", 7),
         (7, "Travel", "🚌", "#9E9E9E", 8),
         (9, "Screen Time", "📱", "#EC407A", 9),
-        (13, "Family", "✅", "#1D4E89", 10),
+        (13, "Family", "❤️", "#1D4E89", 10),
         (11, "Friends", "🧑‍🤝‍🧑", "#26C6DA", 11),
     ]
 
@@ -162,9 +162,9 @@ enum CategorySeeder {
             getReady.emoji = "🛁"
         }
 
-        // Migration: built-in Family's emoji changed to a green check mark
-        if let family = byID[13], family.isBuiltIn, family.emoji == "👨‍👩‍👧‍👦" {
-            family.emoji = "✅"
+        // Migration: built-in Family's emoji settled on a red heart
+        if let family = byID[13], family.isBuiltIn, ["👨‍👩‍👧‍👦", "✅"].contains(family.emoji) {
+            family.emoji = "❤️"
         }
 
         // Migration: drop the short-lived built-in Family (id 10) — users
