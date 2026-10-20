@@ -212,6 +212,70 @@ enum CategorySeeder {
     }
 }
 
+// MARK: - Demo data (debug builds only, for screenshots and demos)
+
+#if DEBUG
+enum DemoDataSeeder {
+    /// When launched with "-seedDemoData", replaces all days/templates with a
+    /// realistic two-week schedule around today. Debug builds only.
+    static func seedIfRequested(_ context: ModelContext) {
+        guard CommandLine.arguments.contains("-seedDemoData") else { return }
+
+        for day in (try? context.fetch(FetchDescriptor<DaySchedule>())) ?? [] { context.delete(day) }
+        for template in (try? context.fetch(FetchDescriptor<MonthTemplate>())) ?? [] { context.delete(template) }
+
+        let cal = Calendar.current
+        for offset in -9...5 {
+            guard let date = cal.date(byAdding: .day, value: offset, to: .now) else { continue }
+            let weekday = cal.component(.weekday, from: date)
+            let isWeekend = weekday == 1 || weekday == 7
+            let blocks = isWeekend ? weekendBlocks() : weekdayBlocks()
+            context.insert(DaySchedule(dayKey: DayKey.key(for: date), blocks: Data(blocks)))
+        }
+
+        let c = cal.dateComponents([.year, .month], from: .now)
+        let monthKey = (c.year ?? 2000) * 100 + (c.month ?? 1)
+        let todayKey = DayKey.key(for: .now)
+        context.insert(MonthTemplate(monthKey: monthKey, kind: 0, blocks: Data(weekdayBlocks()), sourceDayKey: todayKey))
+        context.insert(MonthTemplate(monthKey: monthKey, kind: 1, blocks: Data(weekendBlocks()), sourceDayKey: todayKey))
+        try? context.save()
+    }
+
+    /// Fills [from, to) hours (fractional allowed, e.g. 7.5) with a category id.
+    private static func fill(_ blocks: inout [UInt8], _ from: Double, _ to: Double, _ id: UInt8) {
+        for i in Int(from * 4)..<Int(to * 4) where i >= 0 && i < 96 { blocks[i] = id }
+    }
+
+    private static func weekdayBlocks() -> [UInt8] {
+        var b = DayTemplate.defaultBlocks()
+        fill(&b, 6, 7, 5)        // get ready
+        fill(&b, 7, 7.5, 7)      // travel
+        fill(&b, 7.5, 14.5, 2)   // school
+        fill(&b, 14.5, 16, 4)    // sports
+        fill(&b, 16, 16.5, 7)    // travel
+        fill(&b, 16.5, 18, 3)    // homework
+        fill(&b, 18, 19, 6)      // meals
+        fill(&b, 19, 20, 9)      // screen time
+        fill(&b, 20, 21, 13)     // family
+        return b
+    }
+
+    private static func weekendBlocks() -> [UInt8] {
+        var b = DayTemplate.defaultBlocks()
+        fill(&b, 6, 8, 1)        // sleep in
+        fill(&b, 8, 9, 6)        // breakfast
+        fill(&b, 9, 11, 4)       // sports
+        fill(&b, 11, 12.5, 8)    // activities
+        fill(&b, 12.5, 13, 6)    // lunch
+        fill(&b, 13, 16, 11)     // friends
+        fill(&b, 18, 19, 6)      // dinner
+        fill(&b, 19, 21, 13)     // family
+        fill(&b, 21, 22, 9)      // screen time
+        return b
+    }
+}
+#endif
+
 // MARK: - Hex color support
 
 extension Color {

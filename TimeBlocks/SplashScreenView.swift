@@ -254,7 +254,12 @@ struct SplashScreenView: View {
 /// out. The app loads underneath, so the splash masks startup rather than
 /// adding to it.
 struct RootView: View {
-    @State private var showSplash = true
+    @State private var showSplash: Bool = {
+        #if DEBUG
+        if CommandLine.arguments.contains("-skipSplash") { return false }
+        #endif
+        return true
+    }()
 
     var body: some View {
         ZStack {

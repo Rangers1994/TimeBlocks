@@ -57,6 +57,17 @@ struct CalendarView: View {
             .background(Color.tbBlue.opacity(0.06))
             .navigationTitle("TimeBlocks")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                #if DEBUG
+                // "-openDay 20261021" jumps straight into a day (screenshots/demos)
+                if let i = CommandLine.arguments.firstIndex(of: "-openDay"),
+                   i + 1 < CommandLine.arguments.count,
+                   let key = Int(CommandLine.arguments[i + 1]),
+                   navPath.isEmpty {
+                    navPath = [key]
+                }
+                #endif
+            }
             .navigationDestination(for: Int.self) { key in
                 DayEditorView(dayKey: key)
                     .navigationTransition(.zoom(sourceID: key, in: zoomNamespace))
