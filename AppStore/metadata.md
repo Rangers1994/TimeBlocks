@@ -74,9 +74,12 @@ Answer "None/No" to everything in the questionnaire → results in 4+.
 
 ## URLs
 
-- Support URL: (required — a simple page or even a GitHub Pages site works; can be the same site as the privacy policy)
-- Marketing URL: (optional)
-- Privacy Policy URL: (required — host the included privacy-policy.html and paste its URL)
+Hosted via GitHub Pages from the repo's `docs/` folder (Settings → Pages →
+Deploy from branch → main → /docs):
+
+- Support URL: https://rangers1994.github.io/TimeBlocks/support.html
+- Marketing URL (optional): https://rangers1994.github.io/TimeBlocks/
+- Privacy Policy URL: https://rangers1994.github.io/TimeBlocks/privacy.html
 
 ## App Privacy (nutrition label)
 
