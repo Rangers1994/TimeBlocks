@@ -2,8 +2,9 @@
 //  Oct19FlowUITests.swift
 //  TimeBlocksUITests
 //
-//  End-to-end flow: fresh start → plan Oct 19 with School 9am–3pm →
-//  set it as the weekday template → drag-drop the template onto other days.
+//  End-to-end flow: fresh start → plan the 19th of the current month with
+//  School 9am–3pm → set it as the weekday template → drag-drop the template
+//  onto other days. (Named for Oct 19, the date it was first written against.)
 //
 
 import XCTest
@@ -49,10 +50,17 @@ final class Oct19FlowUITests: XCTestCase {
         XCTAssertTrue(setWeekday.waitForExistence(timeout: 5), "menu should offer weekday template")
         setWeekday.tap()
 
+        // The flow plans the 19th of whatever month the calendar opens on, so
+        // the expected caption follows the current month (e.g. "From Nov 19"),
+        // using the same format style as TemplateSlotView.
+        var comps = Calendar.current.dateComponents([.year, .month], from: .now)
+        comps.day = 19
+        let day19Date = Calendar.current.date(from: comps)!
+        let expectedCaption = "From \(day19Date.formatted(.dateTime.month(.abbreviated).day()))"
         let fromCaption = app.staticTexts
-            .matching(NSPredicate(format: "label CONTAINS 'From Oct 19'")).firstMatch
+            .matching(NSPredicate(format: "label CONTAINS %@", expectedCaption)).firstMatch
         XCTAssertTrue(fromCaption.waitForExistence(timeout: 5),
-                      "STEP 3 RESULT: weekday slot should show 'From Oct 19'")
+                      "STEP 3 RESULT: weekday slot should show '\(expectedCaption)'")
 
         // 4) Drag the weekday template onto Oct 21 (blank day → applies immediately)
         let slot = app.staticTexts["Weekday"].firstMatch

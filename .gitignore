@@ -8,3 +8,6 @@ build/
 
 # macOS
 .DS_Store
+
+# App Store archives (build artifacts)
+*.xcarchive/
